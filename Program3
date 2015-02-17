@@ -1,0 +1,137 @@
+var express = require('express');
+var expServer = express();
+
+function MainFunc(req, res, err) {
+
+	var url = require('url');
+	var request = require('request');
+	var cheerio = require('cheerio');
+
+	var objQuery = url.parse(req.url, true).query;
+	
+	Object.keys(objQuery.address).forEach(function(key) {
+	
+	/*var Promise = require("promise").Promise;
+	var promise = new Promise();
+	asyncOperation(function(){
+	Promise.resolve(GetRequest(objQuery.address[key], res));
+	});
+    promise
+	});*/
+	
+	var RSVP = require('rsvp');
+
+	var promise = new RSVP.Promise(function(resolve, reject) {
+	// succeed
+	resolve(GetRequest(objQuery.address[key], res));
+	// or reject
+	reject(error);
+	});
+
+	promise.then(function(GetRequest(objQuery.address[key], res)) {
+	// success
+	}, function(value) {
+	// failure
+	});
+	
+    /*var RSVP = require('rsvp');
+
+	var promise = new RSVP.Promise(function(GetRequest(objQuery.address[key], res), reject) {
+	  // succeed
+	  resolve(value);
+	  // or reject
+	  reject(error);
+	});
+
+	promise.then(function(value) {
+	  // success
+	}, function(value) {
+	  // failure
+	});*/
+
+}
+	function GetRequest(RequestURL, res) {
+
+		if (!RequestURL.match(/^[a-zA-Z]+:\/\//)) {
+			RequestURL = 'http://' + RequestURL;
+		}
+
+		request(RequestURL, 
+			function(error, response, html) 
+			{
+				GetResponse(RequestURL, error, response, html, res);
+			}
+			, GetResponse);
+	}
+
+	function GetResponse(RequestURL, error, response, html, res) {
+
+		if (!error && response.statusCode == 200) {
+			var $ = cheerio.load(html);
+			var RequestTitle = $(html).find('title').eq(0).text();
+			writeDisplayTitle(res, RequestTitle,RequestURL);
+		} 
+		else 
+		{
+			writeDisplayError(res, "404",RequestURL);
+		}
+	}
+
+	function writeDisplayError(res, error, RequestURL) {
+
+		if (!res.headersSent) {
+
+			res.writeHeader(200, 
+				{
+					"Content-Type": "text/html"
+				}
+			);
+
+			res.write('<html><head><title>My Page</title> </head><body>');
+			res.write('<ul>');
+			res.write('<li>' + RequestURL + ' - ' + 'NO RESPONSE' + '</li>');
+			res.write('</ul>');
+		} 
+		else 
+		{	
+			 res.write('<ul>');
+			res.write('<li>' + RequestURL + ' - ' + 'NO RESPONSE' + '</li>');
+			 res.write('</ul>');
+		}
+
+	}
+	
+	function writeDisplayTitle(res, RequestTitle,RequestURL) {
+
+		if (!res.headersSent) {
+			
+			res.writeHeader(200, 
+				{
+					"Content-Type": "text/html"
+				}
+			);
+
+			res.write('<html><head><title>My Page</title> </head><body>');
+			res.write('<h1>Following are the titles of given websites:</h1>');
+			res.write('<ul>');
+			res.write('<li>' + RequestURL + ' - ' + RequestTitle + '</li>');
+
+			res.write('</ul></body>');
+
+
+		} else {
+			res.write('<ul>');
+			res.write('<li>' + RequestURL + ' - ' + RequestTitle + '</li>');
+			res.write('</ul>');
+		}
+
+	}	
+}
+
+// node server which responds to one and only one route
+expServer.get('/i/want/title', MainFunc);
+
+//listening server at 8080 
+expServer.listen(8080);
+console.log('Server is Started!');
+console.log('URL : http://localhost:8080/i/want/title/?');
